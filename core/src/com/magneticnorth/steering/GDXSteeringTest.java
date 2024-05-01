@@ -4,6 +4,9 @@ import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.ai.GdxAI;
+import com.badlogic.gdx.ai.steer.utils.rays.RayConfigurationBase;
+import com.badlogic.gdx.ai.steer.utils.rays.SingleRayConfiguration;
+import com.badlogic.gdx.ai.utils.RaycastCollisionDetector;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
@@ -17,6 +20,7 @@ import com.badlogic.gdx.physics.box2d.BodyDef;
 import com.badlogic.gdx.physics.box2d.Box2DDebugRenderer;
 import com.badlogic.gdx.physics.box2d.World;
 import com.badlogic.gdx.utils.ScreenUtils;
+import com.magneticnorth.steering.physics.Box2dRaycastCollisionDetector;
 import com.magneticnorth.steering.physics.PhysicsUtils;
 import com.magneticnorth.steering.physics.SteeringAgent;
 import com.magneticnorth.steering.physics.SteeringPresets;
@@ -36,7 +40,8 @@ public class GDXSteeringTest extends ApplicationAdapter {
 	Body targetBody;
 	BitmapFont font;
 	String currentBehavior = "None";
-	
+	Box2dRaycastCollisionDetector collisionDetector;
+
 	@Override
 	public void create () {
 		batch = new SpriteBatch();
@@ -54,6 +59,9 @@ public class GDXSteeringTest extends ApplicationAdapter {
 		physicsCamera.position.set(physicsCamera.viewportWidth / 2f, physicsCamera.viewportHeight / 2f, 1.0f);
 		physicsCamera.update();
 		hudCamera.update();
+
+		// Collision detector using Box2D
+		collisionDetector = new Box2dRaycastCollisionDetector(physicsWorld);
 
 		font = new BitmapFont();
 		font.getData().setScale(1);
@@ -73,20 +81,6 @@ public class GDXSteeringTest extends ApplicationAdapter {
 		ScreenUtils.clear(0, 0, 0, 1);
 		physicsCamera.update();
 		hudCamera.update();
-		ShapeRenderer shapeRenderer = new ShapeRenderer();
-		shapeRenderer.setProjectionMatrix(physicsCamera.combined);
-		shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
-		shapeRenderer.setColor(Color.RED); // Change as needed
-		shapeRenderer.rect(physicsCamera.position.x - (physicsCamera.viewportWidth / 2f),
-				physicsCamera.position.y - (physicsCamera.viewportHeight / 2f),
-				physicsCamera.viewportWidth,
-				physicsCamera.viewportHeight);
-		shapeRenderer.end();
-
-		shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
-		shapeRenderer.setColor(Color.RED);
-		shapeRenderer.rect(100, 100, 100, 100);
-		shapeRenderer.end();
 
 		batch.setProjectionMatrix(hudCamera.combined);
 		batch.begin();
@@ -154,6 +148,11 @@ public class GDXSteeringTest extends ApplicationAdapter {
 		if (Gdx.input.isKeyPressed(Input.Keys.NUM_9)) {
 			primaryAgent.steeringBehavior = null;
 			currentBehavior = "None/Idle";
+		}
+		if (Gdx.input.isKeyPressed(Input.Keys.NUM_0)) {
+			RayConfigurationBase<Vector2> rayConfiguration = new SingleRayConfiguration<>(primaryAgent, 10);
+			primaryAgent.steeringBehavior = SteeringPresets.getObstacleAvoidance(primaryAgent, rayConfiguration, collisionDetector, 5);
+			currentBehavior = "Obstacle Avoidance";
 		}
 
 		debugRenderer.render(physicsWorld, physicsCamera.combined);

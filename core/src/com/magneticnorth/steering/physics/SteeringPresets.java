@@ -2,6 +2,9 @@ package com.magneticnorth.steering.physics;
 
 import com.badlogic.gdx.ai.steer.Steerable;
 import com.badlogic.gdx.ai.steer.behaviors.*;
+import com.badlogic.gdx.ai.steer.utils.rays.RayConfigurationBase;
+import com.badlogic.gdx.ai.steer.utils.rays.SingleRayConfiguration;
+import com.badlogic.gdx.ai.utils.RaycastCollisionDetector;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
 
@@ -42,5 +45,9 @@ public class SteeringPresets {
 
     public static Evade<Vector2> getEvade(Steerable steerable, Steerable target) {
         return new Evade<>(steerable, target);
+    }
+
+    public static RaycastObstacleAvoidance<Vector2> getObstacleAvoidance(Steerable steerable, RayConfigurationBase<Vector2> rayConfig, RaycastCollisionDetector collisionDetector, int distance) {
+        return new RaycastObstacleAvoidance<>(steerable,  rayConfig, collisionDetector, distance);
     }
 }
