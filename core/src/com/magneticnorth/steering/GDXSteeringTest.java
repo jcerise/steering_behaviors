@@ -4,26 +4,31 @@ import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.ai.GdxAI;
+import com.badlogic.gdx.ai.steer.Steerable;
+import com.badlogic.gdx.ai.steer.behaviors.*;
 import com.badlogic.gdx.ai.steer.utils.rays.RayConfigurationBase;
 import com.badlogic.gdx.ai.steer.utils.rays.SingleRayConfiguration;
-import com.badlogic.gdx.ai.utils.RaycastCollisionDetector;
-import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.ai.utils.Location;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector2;
-import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.physics.box2d.Body;
 import com.badlogic.gdx.physics.box2d.BodyDef;
 import com.badlogic.gdx.physics.box2d.Box2DDebugRenderer;
 import com.badlogic.gdx.physics.box2d.World;
 import com.badlogic.gdx.utils.ScreenUtils;
+import com.magneticnorth.steering.input.SteeringInputProcessor;
 import com.magneticnorth.steering.physics.Box2dRaycastCollisionDetector;
 import com.magneticnorth.steering.physics.PhysicsUtils;
 import com.magneticnorth.steering.physics.SteeringAgent;
 import com.magneticnorth.steering.physics.SteeringPresets;
+
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.HashSet;
+import java.util.Set;
 
 public class GDXSteeringTest extends ApplicationAdapter {
 	SpriteBatch batch;
@@ -41,6 +46,24 @@ public class GDXSteeringTest extends ApplicationAdapter {
 	BitmapFont font;
 	String currentBehavior = "None";
 	Box2dRaycastCollisionDetector collisionDetector;
+	PhysicsUtils physicsUtils;
+	SteeringInputProcessor inputProcessor;
+	Location<Vector2> currentTarget;
+	GameState gs;
+
+	private static final Set<Class<?>> classesWithSetTarget;
+
+	static {
+		classesWithSetTarget = new HashSet<>();
+		classesWithSetTarget.add(Arrive.class);
+		classesWithSetTarget.add(Seek.class);
+		classesWithSetTarget.add(Wander.class);
+		classesWithSetTarget.add(Flee.class);
+		classesWithSetTarget.add(ReachOrientation.class);
+		classesWithSetTarget.add(Face.class);
+		classesWithSetTarget.add(Pursue.class);
+		classesWithSetTarget.add(Evade.class);
+	}
 
 	@Override
 	public void create () {
@@ -60,20 +83,27 @@ public class GDXSteeringTest extends ApplicationAdapter {
 		physicsCamera.update();
 		hudCamera.update();
 
+		physicsUtils = new PhysicsUtils(physicsWorld, physicsCamera);
+
 		// Collision detector using Box2D
 		collisionDetector = new Box2dRaycastCollisionDetector(physicsWorld);
 
 		font = new BitmapFont();
 		font.getData().setScale(1);
 
-		primaryBody = new PhysicsUtils().createCircleBody(physicsWorld, physicsCamera.viewportWidth / 2f, physicsCamera.viewportHeight / 2f, 1f, BodyDef.BodyType.DynamicBody);
-		targetBody = new PhysicsUtils().createCircleBody(physicsWorld, physicsCamera.viewportWidth / 2f, physicsCamera.viewportHeight / 2f, 1f, BodyDef.BodyType.DynamicBody);
+		primaryBody = physicsUtils.createCircleBody(physicsCamera.viewportWidth / 2f, physicsCamera.viewportHeight / 2f, 1f, BodyDef.BodyType.DynamicBody);
+		targetBody = physicsUtils.createCircleBody(physicsCamera.viewportWidth / 2f, physicsCamera.viewportHeight / 2f, 1f, BodyDef.BodyType.DynamicBody);
 
 		primaryAgent = new SteeringAgent(primaryBody, 5);
 		targetAgent = new SteeringAgent(targetBody, 5);
 
 		// Set the target to wander
 		targetAgent.steeringBehavior = SteeringPresets.getWander(targetAgent);
+
+		gs = new GameState(targetAgent, hudCamera, physicsCamera, physicsUtils);
+
+		inputProcessor = new SteeringInputProcessor(gs);
+		Gdx.input.setInputProcessor(inputProcessor);
 	}
 
 	@Override
@@ -105,20 +135,20 @@ public class GDXSteeringTest extends ApplicationAdapter {
 		primaryAgent.update(Gdx.graphics.getDeltaTime());
 		targetAgent.update(Gdx.graphics.getDeltaTime());
 
-		if (Gdx.input.justTouched()) {
-			Vector3 touchPoint = new Vector3();
-			touchPoint.set(Gdx.input.getX(), Gdx.input.getY(), 0);
-			physicsCamera.unproject(touchPoint);
-			System.out.println("Touch at: (" + touchPoint.x + ", " + touchPoint.y + ")");
-			new PhysicsUtils().createRectBody(physicsWorld, touchPoint.x, touchPoint.y, 1, 1, BodyDef.BodyType.StaticBody);
-		}
+//		if (Gdx.input.justTouched()) {
+//			Vector3 touchPoint = new Vector3();
+//			touchPoint.set(Gdx.input.getX(), Gdx.input.getY(), 0);
+//			physicsCamera.unproject(touchPoint);
+//			System.out.println("Touch at: (" + touchPoint.x + ", " + touchPoint.y + ")");
+//			new PhysicsUtils().createRectBody(physicsWorld, touchPoint.x, touchPoint.y, 1, 1, BodyDef.BodyType.StaticBody);
+//		}
 
 		if (Gdx.input.isKeyPressed(Input.Keys.NUM_1)) {
 			primaryAgent.steeringBehavior = SteeringPresets.getWander(primaryAgent);
 			currentBehavior = "Wander";
 		}
 		if (Gdx.input.isKeyPressed(Input.Keys.NUM_2)) {
-			primaryAgent.steeringBehavior = SteeringPresets.getArrive(primaryAgent, targetAgent);
+			primaryAgent.steeringBehavior = SteeringPresets.getArrive(primaryAgent, gs.currentTarget);
 			currentBehavior = "Arrive";
 		}
 		if (Gdx.input.isKeyPressed(Input.Keys.NUM_3)) {
@@ -155,6 +185,21 @@ public class GDXSteeringTest extends ApplicationAdapter {
 			currentBehavior = "Obstacle Avoidance";
 		}
 
+		// Update the current target
+		if (primaryAgent.steeringBehavior != null) {
+			if (classesWithSetTarget.contains(primaryAgent.steeringBehavior.getClass())) {
+				try {
+					Method setTargetMethod = primaryAgent.steeringBehavior.getClass().getMethod("setTarget", Location.class);
+					setTargetMethod.invoke(primaryAgent.steeringBehavior, gs.currentTarget);
+				} catch (NoSuchMethodException e) {
+					System.out.println("Method not found");
+				} catch (IllegalAccessException e) {
+					System.out.println("Illegal access");
+				} catch (InvocationTargetException e) {
+					System.out.println("Invocation error");
+				}
+			}
+		}
 		debugRenderer.render(physicsWorld, physicsCamera.combined);
 	}
 	

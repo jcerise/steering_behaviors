@@ -19,18 +19,26 @@ public class Box2dRaycastCollisionDetector implements RaycastCollisionDetector<V
     @Override
     public boolean collides(Ray<Vector2> ray) {
         callback.collided = false;
-        world.rayCast(callback, ray.start, ray.end);
-        return callback.collided;
+        if (!ray.start.equals(ray.end)){
+            world.rayCast(callback, ray.start, ray.end);
+            return callback.collided;
+        } else {
+            return false;
+        }
     }
 
     @Override
     public boolean findCollision(Collision<Vector2> outputCollision, Ray<Vector2> inputRay) {
         callback.collided = false;
-        world.rayCast(callback, inputRay.start,inputRay.end);
-        if (callback.collided) {
-            outputCollision.point.set(callback.point);
-            outputCollision.normal.set(callback.normal);
+        if (!inputRay.start.equals(inputRay.end)) {
+            world.rayCast(callback, inputRay.start, inputRay.end);
+            if (callback.collided) {
+                outputCollision.point.set(callback.point);
+                outputCollision.normal.set(callback.normal);
+            }
+            return callback.collided;
+        } else {
+            return false;
         }
-        return callback.collided;
     }
 }

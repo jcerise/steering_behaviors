@@ -3,7 +3,6 @@ package com.magneticnorth.steering.physics;
 import com.badlogic.gdx.ai.steer.Steerable;
 import com.badlogic.gdx.ai.steer.behaviors.*;
 import com.badlogic.gdx.ai.steer.utils.rays.RayConfigurationBase;
-import com.badlogic.gdx.ai.steer.utils.rays.SingleRayConfiguration;
 import com.badlogic.gdx.ai.utils.RaycastCollisionDetector;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
@@ -19,31 +18,31 @@ public class SteeringPresets {
                 .setFaceEnabled(true);
     }
 
-    public static Seek<Vector2> getSeek(Steerable steerable, Steerable target) {
+    public static Seek<Vector2> getSeek(Steerable steerable, Steerable<Vector2> target) {
         return new Seek<Vector2>(steerable, target);
     }
 
-    public static Arrive<Vector2> getArrive(Steerable steerable, Steerable target) {
+    public static Arrive<Vector2> getArrive(Steerable steerable, Steerable<Vector2> target) {
         return new Arrive<Vector2>(steerable, target);
     }
 
-    public static Flee<Vector2> getFlee(Steerable steerable, Steerable target) {
+    public static Flee<Vector2> getFlee(Steerable steerable, Steerable<Vector2> target) {
         return new Flee<Vector2>(steerable, target);
     }
 
-    public static ReachOrientation<Vector2> getReachOrientation(Steerable steerable, Steerable target) {
+    public static ReachOrientation<Vector2> getReachOrientation(Steerable steerable, Steerable<Vector2> target) {
         return new ReachOrientation<>(steerable, target);
     }
 
-    public static Face<Vector2> getFace(Steerable steerable, Steerable target) {
+    public static Face<Vector2> getFace(Steerable steerable, Steerable<Vector2> target) {
         return new Face<>(steerable, target);
     }
 
-    public static Pursue<Vector2> getPursue(Steerable steerable, Steerable target) {
+    public static Pursue<Vector2> getPursue(Steerable steerable, Steerable<Vector2> target) {
         return new Pursue<>(steerable, target);
     }
 
-    public static Evade<Vector2> getEvade(Steerable steerable, Steerable target) {
+    public static Evade<Vector2> getEvade(Steerable steerable, Steerable<Vector2> target) {
         return new Evade<>(steerable, target);
     }
 
