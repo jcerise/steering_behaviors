@@ -4,7 +4,6 @@ import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.ai.GdxAI;
-import com.badlogic.gdx.ai.steer.Steerable;
 import com.badlogic.gdx.ai.steer.behaviors.*;
 import com.badlogic.gdx.ai.steer.utils.rays.RayConfigurationBase;
 import com.badlogic.gdx.ai.steer.utils.rays.SingleRayConfiguration;
@@ -19,6 +18,9 @@ import com.badlogic.gdx.physics.box2d.BodyDef;
 import com.badlogic.gdx.physics.box2d.Box2DDebugRenderer;
 import com.badlogic.gdx.physics.box2d.World;
 import com.badlogic.gdx.utils.ScreenUtils;
+import com.badlogic.gdx.utils.viewport.ExtendViewport;
+import com.badlogic.gdx.utils.viewport.FitViewport;
+import com.badlogic.gdx.utils.viewport.Viewport;
 import com.magneticnorth.steering.input.SteeringInputProcessor;
 import com.magneticnorth.steering.physics.Box2dRaycastCollisionDetector;
 import com.magneticnorth.steering.physics.PhysicsUtils;
@@ -50,6 +52,8 @@ public class GDXSteeringTest extends ApplicationAdapter {
 	SteeringInputProcessor inputProcessor;
 	Location<Vector2> currentTarget;
 	GameState gs;
+	Viewport physicsViewport;
+	Viewport uiViewport;
 
 	private static final Set<Class<?>> classesWithSetTarget;
 
@@ -76,8 +80,11 @@ public class GDXSteeringTest extends ApplicationAdapter {
 		hudCamera = new OrthographicCamera();
 		physicsCamera = new OrthographicCamera();
 
+		physicsViewport = new FitViewport(20, 20 / (16f/9f), physicsCamera);
+		uiViewport = new FitViewport(1920, 1080, hudCamera);
+
 		hudCamera.setToOrtho(false, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-		physicsCamera.setToOrtho(false, 20, 20 / (4f/3f));
+		physicsCamera.setToOrtho(false, 20, 20 / (16f/9f));
 		hudCamera.position.set(hudCamera.viewportWidth / 2.0f, hudCamera.viewportHeight / 2.0f, 1.0f);
 		physicsCamera.position.set(physicsCamera.viewportWidth / 2f, physicsCamera.viewportHeight / 2f, 1.0f);
 		physicsCamera.update();
@@ -111,6 +118,9 @@ public class GDXSteeringTest extends ApplicationAdapter {
 		ScreenUtils.clear(0, 0, 0, 1);
 		physicsCamera.update();
 		hudCamera.update();
+
+		physicsViewport.apply();
+		uiViewport.apply();
 
 		batch.setProjectionMatrix(hudCamera.combined);
 		batch.begin();
@@ -201,6 +211,11 @@ public class GDXSteeringTest extends ApplicationAdapter {
 			}
 		}
 		debugRenderer.render(physicsWorld, physicsCamera.combined);
+	}
+
+	public void resize(int width, int height) {
+		physicsViewport.update(width, height, true);
+		uiViewport.update(width, height, true);
 	}
 	
 	@Override
