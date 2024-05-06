@@ -49,4 +49,22 @@ public class SteeringPresets {
     public static RaycastObstacleAvoidance<Vector2> getObstacleAvoidance(Steerable steerable, RayConfigurationBase<Vector2> rayConfig, RaycastCollisionDetector collisionDetector, int distance) {
         return new RaycastObstacleAvoidance<>(steerable,  rayConfig, collisionDetector, distance);
     }
+
+    public static PrioritySteering<Vector2> getPrioritySteering(Steerable steerable, float threshold, Steerable<Vector2> target, RayConfigurationBase<Vector2> rayConfig, RaycastCollisionDetector collisionDetector, int distance) {
+        PrioritySteering<Vector2> pSteer = new PrioritySteering<Vector2>(steerable, threshold);
+        Seek<Vector2> seek = getSeek(steerable, target);
+        RaycastObstacleAvoidance<Vector2> obsAvoid = getObstacleAvoidance(steerable, rayConfig, collisionDetector, distance);
+        pSteer.add(obsAvoid);
+        pSteer.add(seek);
+        return pSteer;
+    }
+
+    public static BlendedSteering<Vector2> getBlendedSteering(Steerable steerable, Steerable<Vector2> target, RayConfigurationBase<Vector2> rayConfig, RaycastCollisionDetector collisionDetector, int distance) {
+        BlendedSteering<Vector2> pSteer = new BlendedSteering<Vector2>(steerable);
+        Seek<Vector2> seek = getSeek(steerable, target);
+        RaycastObstacleAvoidance<Vector2> obsAvoid = getObstacleAvoidance(steerable, rayConfig, collisionDetector, distance);
+        pSteer.add(obsAvoid, 1);
+        pSteer.add(seek, 0.2f);
+        return pSteer;
+    }
 }

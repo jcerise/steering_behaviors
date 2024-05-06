@@ -5,6 +5,9 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.ai.GdxAI;
 import com.badlogic.gdx.ai.steer.behaviors.*;
+import com.badlogic.gdx.ai.steer.utils.RayConfiguration;
+import com.badlogic.gdx.ai.steer.utils.rays.CentralRayWithWhiskersConfiguration;
+import com.badlogic.gdx.ai.steer.utils.rays.ParallelSideRayConfiguration;
 import com.badlogic.gdx.ai.steer.utils.rays.RayConfigurationBase;
 import com.badlogic.gdx.ai.steer.utils.rays.SingleRayConfiguration;
 import com.badlogic.gdx.ai.utils.Location;
@@ -54,6 +57,8 @@ public class GDXSteeringTest extends ApplicationAdapter {
 	GameState gs;
 	Viewport physicsViewport;
 	Viewport uiViewport;
+	String rayType = "Parallel";
+	RayConfigurationBase<Vector2> rayConfig;
 
 	private static final Set<Class<?>> classesWithSetTarget;
 
@@ -98,8 +103,8 @@ public class GDXSteeringTest extends ApplicationAdapter {
 		font = new BitmapFont();
 		font.getData().setScale(1);
 
-		primaryBody = physicsUtils.createCircleBody(physicsCamera.viewportWidth / 2f, physicsCamera.viewportHeight / 2f, 1f, BodyDef.BodyType.DynamicBody);
-		targetBody = physicsUtils.createCircleBody(physicsCamera.viewportWidth / 2f, physicsCamera.viewportHeight / 2f, 1f, BodyDef.BodyType.DynamicBody);
+		primaryBody = physicsUtils.createCircleBody(physicsCamera.viewportWidth / 2f, physicsCamera.viewportHeight / 2f, 0.2f, BodyDef.BodyType.DynamicBody);
+		targetBody = physicsUtils.createCircleBody(physicsCamera.viewportWidth / 2f, physicsCamera.viewportHeight / 2f, 0.2f, BodyDef.BodyType.DynamicBody);
 
 		primaryAgent = new SteeringAgent(primaryBody, 5);
 		targetAgent = new SteeringAgent(targetBody, 5);
@@ -111,6 +116,8 @@ public class GDXSteeringTest extends ApplicationAdapter {
 
 		inputProcessor = new SteeringInputProcessor(gs);
 		Gdx.input.setInputProcessor(inputProcessor);
+
+		rayConfig = new ParallelSideRayConfiguration<>(primaryAgent, 2, 0.2f);
 	}
 
 	@Override
@@ -135,8 +142,11 @@ public class GDXSteeringTest extends ApplicationAdapter {
 		font.draw(batch, "7: Pursue", 0, Gdx.graphics.getHeight() - 112);
 		font.draw(batch, "8: Evade", 0, Gdx.graphics.getHeight() - 126);
 		font.draw(batch, "9: None/Idle", 0, Gdx.graphics.getHeight() - 140);
-		font.draw(batch, "Current Behavior: " + currentBehavior, 0, Gdx.graphics.getHeight() - 160);
-		font.draw(batch, "FPS: " + Gdx.graphics.getFramesPerSecond(), 0, Gdx.graphics.getHeight() - 180);
+		font.draw(batch, "P: Seek + Obstacle Avoidance", 0, Gdx.graphics.getHeight() - 160);
+		font.draw(batch, "Current Behavior: " + currentBehavior, 0, Gdx.graphics.getHeight() - 180);
+		font.draw(batch, "Current Ray Type: " + rayType, 0, Gdx.graphics.getHeight() - 200);
+		font.draw(batch, "Target: (" + gs.currentTarget.getPosition().x + ", " + gs.currentTarget.getPosition().y + ")", 0, Gdx.graphics.getHeight() - 220);
+		font.draw(batch, "FPS: " + Gdx.graphics.getFramesPerSecond(), 0, Gdx.graphics.getHeight() - 240);
 		batch.end();
 		GdxAI.getTimepiece().update(Gdx.graphics.getDeltaTime());
 
@@ -145,13 +155,7 @@ public class GDXSteeringTest extends ApplicationAdapter {
 		primaryAgent.update(Gdx.graphics.getDeltaTime());
 		targetAgent.update(Gdx.graphics.getDeltaTime());
 
-//		if (Gdx.input.justTouched()) {
-//			Vector3 touchPoint = new Vector3();
-//			touchPoint.set(Gdx.input.getX(), Gdx.input.getY(), 0);
-//			physicsCamera.unproject(touchPoint);
-//			System.out.println("Touch at: (" + touchPoint.x + ", " + touchPoint.y + ")");
-//			new PhysicsUtils().createRectBody(physicsWorld, touchPoint.x, touchPoint.y, 1, 1, BodyDef.BodyType.StaticBody);
-//		}
+		RayConfigurationBase<Vector2> rayConfig = new SingleRayConfiguration<>(primaryAgent, 2);
 
 		if (Gdx.input.isKeyPressed(Input.Keys.NUM_1)) {
 			primaryAgent.steeringBehavior = SteeringPresets.getWander(primaryAgent);
@@ -190,10 +194,27 @@ public class GDXSteeringTest extends ApplicationAdapter {
 			currentBehavior = "None/Idle";
 		}
 		if (Gdx.input.isKeyPressed(Input.Keys.NUM_0)) {
-			RayConfigurationBase<Vector2> rayConfiguration = new SingleRayConfiguration<>(primaryAgent, 10);
-			primaryAgent.steeringBehavior = SteeringPresets.getObstacleAvoidance(primaryAgent, rayConfiguration, collisionDetector, 5);
+			primaryAgent.steeringBehavior = SteeringPresets.getObstacleAvoidance(primaryAgent, rayConfig, collisionDetector, 5);
 			currentBehavior = "Obstacle Avoidance";
 		}
+		if (Gdx.input.isKeyPressed(Input.Keys.C)) {
+			primaryAgent.steeringBehavior = SteeringPresets.getPrioritySteering(primaryAgent, 0.001f, gs.currentTarget, rayConfig, collisionDetector, 2);
+			currentBehavior = "Seek with Obstacle Avoidance";
+		}
+
+		if (Gdx.input.isKeyPressed(Input.Keys.S)) {
+			rayConfig = new SingleRayConfiguration<>(primaryAgent, 2);
+			rayType = "Single";
+		}
+		if (Gdx.input.isKeyPressed(Input.Keys.P)) {
+			rayConfig = new ParallelSideRayConfiguration<>(primaryAgent, 2, 0.2f);
+			rayType = "Parallel";
+		}
+		if (Gdx.input.isKeyPressed(Input.Keys.W)) {
+			rayConfig = new CentralRayWithWhiskersConfiguration<>(primaryAgent, 2, 0.2f, 5);
+			rayType = "Central with Whiskers, whisker angle: 5 degrees";
+		}
+
 
 		// Update the current target
 		if (primaryAgent.steeringBehavior != null) {

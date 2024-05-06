@@ -41,7 +41,7 @@ public class SteeringInputProcessor implements InputProcessor {
             Vector3 touchPoint = new Vector3();
             touchPoint.set(screenX, screenY, 0);
             camera.unproject(touchPoint);
-            utils.createRectBody(touchPoint.x, touchPoint.y, 1, 1, BodyDef.BodyType.StaticBody);
+            utils.createCircleBody(touchPoint.x, touchPoint.y, 1, BodyDef.BodyType.StaticBody);
         } else if (button == Input.Buttons.LEFT) {
             Vector3 touchPoint = new Vector3();
             touchPoint.set(screenX, screenY, 0);

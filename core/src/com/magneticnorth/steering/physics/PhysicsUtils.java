@@ -60,7 +60,7 @@ public class PhysicsUtils {
         bodyDef.position.set(x, y);
 
         CircleShape shape = new CircleShape();
-        shape.setRadius(0.2f);
+        shape.setRadius(radius);
 
         FixtureDef fixtureDef = new FixtureDef();
         fixtureDef.shape = shape;
