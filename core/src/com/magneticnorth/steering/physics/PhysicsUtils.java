@@ -64,13 +64,13 @@ public class PhysicsUtils {
 
         FixtureDef fixtureDef = new FixtureDef();
         fixtureDef.shape = shape;
-        fixtureDef.density = 1f;
-        fixtureDef.friction = 1.0f;
+        fixtureDef.density = 0.009f;
+        fixtureDef.friction = 0.01f;
 
         Body body = this.physicsWorld.createBody(bodyDef);
         body.createFixture(fixtureDef);
-        body.setAngularDamping(1f);
-        body.setLinearDamping(1f);
+        body.setAngularDamping(0.6f);
+        body.setLinearDamping(0.7f);
 
         shape.dispose();
 

@@ -5,7 +5,6 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.ai.GdxAI;
 import com.badlogic.gdx.ai.steer.behaviors.*;
-import com.badlogic.gdx.ai.steer.utils.RayConfiguration;
 import com.badlogic.gdx.ai.steer.utils.rays.CentralRayWithWhiskersConfiguration;
 import com.badlogic.gdx.ai.steer.utils.rays.ParallelSideRayConfiguration;
 import com.badlogic.gdx.ai.steer.utils.rays.RayConfigurationBase;
@@ -21,8 +20,7 @@ import com.badlogic.gdx.physics.box2d.BodyDef;
 import com.badlogic.gdx.physics.box2d.Box2DDebugRenderer;
 import com.badlogic.gdx.physics.box2d.World;
 import com.badlogic.gdx.utils.ScreenUtils;
-import com.badlogic.gdx.utils.viewport.ExtendViewport;
-import com.badlogic.gdx.utils.viewport.FitViewport;
+import com.badlogic.gdx.utils.viewport.FillViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
 import com.magneticnorth.steering.input.SteeringInputProcessor;
 import com.magneticnorth.steering.physics.Box2dRaycastCollisionDetector;
@@ -40,10 +38,9 @@ public class GDXSteeringTest extends ApplicationAdapter {
 	Texture img;
 	private World physicsWorld;
 	private Box2DDebugRenderer debugRenderer;
-	private OrthographicCamera hudCamera;
-	private OrthographicCamera physicsCamera;
+	private OrthographicCamera gameCamera;
 	private static final float MAX_STEP_TIME = 1/60f;
-	public static final float PIXELS_PER_METER = 33f;
+	public static final float PIXELS_PER_METER = 10f;
 	SteeringAgent primaryAgent;
 	SteeringAgent targetAgent;
 	Body primaryBody;
@@ -56,9 +53,11 @@ public class GDXSteeringTest extends ApplicationAdapter {
 	Location<Vector2> currentTarget;
 	GameState gs;
 	Viewport physicsViewport;
-	Viewport uiViewport;
+	Viewport gameViewport;
 	String rayType = "Parallel";
 	RayConfigurationBase<Vector2> rayConfig;
+	public final float WORLD_WIDTH = 600;
+	public final float WORLD_HEIGHT = 400;
 
 	private static final Set<Class<?>> classesWithSetTarget;
 
@@ -78,41 +77,33 @@ public class GDXSteeringTest extends ApplicationAdapter {
 	public void create () {
 		batch = new SpriteBatch();
 		img = new Texture("badlogic.jpg");
-		debugRenderer = new Box2DDebugRenderer();
+			debugRenderer = new Box2DDebugRenderer();
 
 		physicsWorld = new World(new Vector2(0, 0.0f), true);
 
-		hudCamera = new OrthographicCamera();
-		physicsCamera = new OrthographicCamera();
+		gameCamera = new OrthographicCamera();
+		gameViewport = new FillViewport(WORLD_WIDTH, WORLD_HEIGHT, gameCamera);
+		gameCamera.position.set(WORLD_WIDTH/ 2.0f, WORLD_HEIGHT / 2.0f, 0.0f);
+		gameCamera.update();
 
-		physicsViewport = new FitViewport(20, 20 / (16f/9f), physicsCamera);
-		uiViewport = new FitViewport(1920, 1080, hudCamera);
-
-		hudCamera.setToOrtho(false, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-		physicsCamera.setToOrtho(false, 20, 20 / (16f/9f));
-		hudCamera.position.set(hudCamera.viewportWidth / 2.0f, hudCamera.viewportHeight / 2.0f, 1.0f);
-		physicsCamera.position.set(physicsCamera.viewportWidth / 2f, physicsCamera.viewportHeight / 2f, 1.0f);
-		physicsCamera.update();
-		hudCamera.update();
-
-		physicsUtils = new PhysicsUtils(physicsWorld, physicsCamera);
+		physicsUtils = new PhysicsUtils(physicsWorld, gameCamera);
 
 		// Collision detector using Box2D
 		collisionDetector = new Box2dRaycastCollisionDetector(physicsWorld);
 
 		font = new BitmapFont();
-		font.getData().setScale(1);
+		font.getData().setScale(0.5f);
 
-		primaryBody = physicsUtils.createCircleBody(physicsCamera.viewportWidth / 2f, physicsCamera.viewportHeight / 2f, 0.2f, BodyDef.BodyType.DynamicBody);
-		targetBody = physicsUtils.createCircleBody(physicsCamera.viewportWidth / 2f, physicsCamera.viewportHeight / 2f, 0.2f, BodyDef.BodyType.DynamicBody);
+		primaryBody = physicsUtils.createCircleBody(WORLD_WIDTH / 2.0f, WORLD_HEIGHT / 2.0f, 10.0f, BodyDef.BodyType.DynamicBody);
+		targetBody = physicsUtils.createCircleBody(WORLD_WIDTH / 2.0f, WORLD_HEIGHT / 2.0f, 10.0f, BodyDef.BodyType.DynamicBody);
 
-		primaryAgent = new SteeringAgent(primaryBody, 5);
-		targetAgent = new SteeringAgent(targetBody, 5);
+		primaryAgent = new SteeringAgent(primaryBody, 50);
+		targetAgent = new SteeringAgent(targetBody, 50);
 
 		// Set the target to wander
 		targetAgent.steeringBehavior = SteeringPresets.getWander(targetAgent);
 
-		gs = new GameState(targetAgent, hudCamera, physicsCamera, physicsUtils);
+		gs = new GameState(targetAgent, gameCamera, gameCamera, physicsUtils);
 
 		inputProcessor = new SteeringInputProcessor(gs);
 		Gdx.input.setInputProcessor(inputProcessor);
@@ -123,30 +114,28 @@ public class GDXSteeringTest extends ApplicationAdapter {
 	@Override
 	public void render () {
 		ScreenUtils.clear(0, 0, 0, 1);
-		physicsCamera.update();
-		hudCamera.update();
+		gameCamera.update();
 
-		physicsViewport.apply();
-		uiViewport.apply();
+		gameViewport.apply();
 
-		batch.setProjectionMatrix(hudCamera.combined);
+		batch.setProjectionMatrix(gameCamera.combined);
 		batch.begin();
-		font.draw(batch, "Steering Behaviors", 0, Gdx.graphics.getHeight());
-		font.draw(batch, "Controls:", 0, Gdx.graphics.getHeight() - 14);
-		font.draw(batch, "1: Wander", 0, Gdx.graphics.getHeight() - 28);
-		font.draw(batch, "2: Arrive", 0, Gdx.graphics.getHeight() - 42);
-		font.draw(batch, "3: Seek", 0, Gdx.graphics.getHeight() - 56);
-		font.draw(batch, "4: Flee", 0, Gdx.graphics.getHeight() - 70);
-		font.draw(batch, "5: Reach Orientation", 0, Gdx.graphics.getHeight() - 84);
-		font.draw(batch, "6: Face", 0, Gdx.graphics.getHeight() - 98);
-		font.draw(batch, "7: Pursue", 0, Gdx.graphics.getHeight() - 112);
-		font.draw(batch, "8: Evade", 0, Gdx.graphics.getHeight() - 126);
-		font.draw(batch, "9: None/Idle", 0, Gdx.graphics.getHeight() - 140);
-		font.draw(batch, "P: Seek + Obstacle Avoidance", 0, Gdx.graphics.getHeight() - 160);
-		font.draw(batch, "Current Behavior: " + currentBehavior, 0, Gdx.graphics.getHeight() - 180);
-		font.draw(batch, "Current Ray Type: " + rayType, 0, Gdx.graphics.getHeight() - 200);
-		font.draw(batch, "Target: (" + gs.currentTarget.getPosition().x + ", " + gs.currentTarget.getPosition().y + ")", 0, Gdx.graphics.getHeight() - 220);
-		font.draw(batch, "FPS: " + Gdx.graphics.getFramesPerSecond(), 0, Gdx.graphics.getHeight() - 240);
+		font.draw(batch, "Steering Behaviors",0, WORLD_HEIGHT - 32);
+		font.draw(batch, "Controls:", 0, WORLD_HEIGHT - 42);
+		font.draw(batch, "1: Wander", 10, WORLD_HEIGHT - 52);
+		font.draw(batch, "2: Arrive", 10, WORLD_HEIGHT - 62);
+		font.draw(batch, "3: Seek", 10, WORLD_HEIGHT - 72);
+		font.draw(batch, "4: Flee", 10, WORLD_HEIGHT - 82);
+		font.draw(batch, "5: Reach Orientation", 10, WORLD_HEIGHT - 92);
+		font.draw(batch, "6: Face", 10, WORLD_HEIGHT - 102);
+		font.draw(batch, "7: Pursue", 10, WORLD_HEIGHT - 112);
+		font.draw(batch, "8: Evade", 10, WORLD_HEIGHT - 122);
+		font.draw(batch, "9: None/Idle", 10, WORLD_HEIGHT - 132);
+		font.draw(batch, "P: Seek + Obstacle Avoidance", 10, WORLD_HEIGHT - 142);
+		font.draw(batch, "Current Behavior: " + currentBehavior, 0, WORLD_HEIGHT - 152);
+		font.draw(batch, "Current Ray Type: " + rayType, 0, WORLD_HEIGHT - 162);
+		font.draw(batch, "Target: (" + gs.currentTarget.getPosition().x + ", " + gs.currentTarget.getPosition().y + ")", 0, WORLD_HEIGHT - 172);
+		font.draw(batch, "FPS: " + Gdx.graphics.getFramesPerSecond(), 0, WORLD_HEIGHT - 182);
 		batch.end();
 		GdxAI.getTimepiece().update(Gdx.graphics.getDeltaTime());
 
@@ -231,12 +220,11 @@ public class GDXSteeringTest extends ApplicationAdapter {
 				}
 			}
 		}
-		debugRenderer.render(physicsWorld, physicsCamera.combined);
+		debugRenderer.render(physicsWorld, gameCamera.combined);
 	}
 
 	public void resize(int width, int height) {
-		physicsViewport.update(width, height, true);
-		uiViewport.update(width, height, true);
+		gameViewport.update(width, height, true);
 	}
 	
 	@Override

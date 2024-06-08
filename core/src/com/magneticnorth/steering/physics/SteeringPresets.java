@@ -11,9 +11,9 @@ public class SteeringPresets {
     public static final float PIXELS_TO_METERS = 1f / 64f;
     public static Wander<Vector2> getWander(Steerable steerable){
         return new Wander<Vector2>(steerable)
-                .setWanderOffset(1f) // distance away from entity to set target
+                .setWanderOffset(50f) // distance away from entity to set target
                 .setWanderOrientation(0f) // the initial orientation
-                .setWanderRadius(5f) // size of target
+                .setWanderRadius(15f) // size of target
                 .setWanderRate(MathUtils.PI2 * 4)
                 .setFaceEnabled(true);
     }

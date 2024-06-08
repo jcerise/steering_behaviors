@@ -33,10 +33,10 @@ public class SteeringAgent implements Steerable<Vector2> {
         this.body = body;
         this.position = this.body.getPosition();
         this.boundingRadius = boundingRadius;
-        this.maxLinearSpeed = 5;
-        this.maxLinearAcceleration = 5;
-        this.maxAngularSpeed = 1f;
-        this.maxAngularAcceleration = 1f;
+        this.maxLinearSpeed = 25;
+        this.maxLinearAcceleration = 50;
+        this.maxAngularSpeed = 50f;
+        this.maxAngularAcceleration = 50f;
         this.linearVelocity = new Vector2();
         this.independentFacing = true;
     }
@@ -90,7 +90,7 @@ public class SteeringAgent implements Steerable<Vector2> {
         if (!(steering == null)) {
             // Update position and linear velocity. Velocity is trimmed to maximum speed
             this.position.mulAdd(linearVelocity, time);
-            this.linearVelocity = this.linearVelocity.mulAdd(steering.linear, time).limit(this.getMaxLinearSpeed()).scl(0.5f);
+            this.linearVelocity = this.linearVelocity.mulAdd(steering.linear, time).limit(this.getMaxLinearSpeed()).scl(01.0f);
 
             // Apply angular velocity if necessary
             if (independentFacing) {
@@ -108,8 +108,8 @@ public class SteeringAgent implements Steerable<Vector2> {
             body.applyForceToCenter(this.linearVelocity, true);
             body.applyTorque(this.angularVelocity, true);
         } else {
-            body.setLinearDamping(1000.5f);  // tweak value as needed
-            body.setAngularDamping(1000.5f);  // tweak value as needed
+            body.setLinearDamping(10.5f);  // tweak value as needed
+            body.setAngularDamping(10.5f);  // tweak value as needed
         }
     }
 
